@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PNG画像の横幅・カラーをホワイトに変更</title>
+    <link rel="icon" href="https://i.imgur.com/zFdf1cT.png" type="image/png">
+    <link rel="stylesheet" href="styles.css"> <!-- styles.cssのリンク -->
+</head>
+<body>
+    <div class="container">
+        <h1>PNG画像の横幅・カラーをホワイトに変更</h1>
+        <input type="file" id="imageUpload" accept="image/png">
+        <br>
+        <label for="widthInput">横幅を入力（px）:</label>
+        <input type="number" id="widthInput" placeholder="新しい横幅" min="1">
+        <br><br>
+        <button onclick="resizeAndChangeColor()">実行</button>
+        <br><br>
+        <img id="outputImage" src="" alt="">
+        <br>
+        <!-- ダウンロードボタン -->
+        <a id="downloadButton" style="display:none;" href="#" download="modified_image.png">
+            <button>画像をダウンロード</button>
+        </a>
+    </div>
+    
+    <script>
+        let uploadedImage = null;
+
+        // 画像がアップロードされたときに画像を表示
+        document.getElementById('imageUpload').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedImage = new Image();
+                    uploadedImage.src = e.target.result;
+                    uploadedImage.onload = function() {
+                        document.getElementById('outputImage').src = uploadedImage.src;
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 画像の横幅を変更し、色のあるピクセルをホワイトに変更（透過部分は変更しない）
+        function resizeAndChangeColor() {
+            const newWidth = document.getElementById('widthInput').value;
+            if (uploadedImage && newWidth) {
+                // 横幅を変更するためのcanvas作成
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const newHeight = uploadedImage.height;  // 縦幅はそのまま
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+
+                // 画像を変更後の横幅で描画
+                ctx.drawImage(uploadedImage, 0, 0, newWidth, newHeight);
+
+                // 画像データを取得
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                // 色のあるピクセルをホワイトに変更（透過部分は変更しない）
+                for (let i = 0; i < data.length; i += 4) {
+                    const alpha = data[i + 3]; // アルファ値（透過度）
+
+                    // 透過部分以外をホワイトに変更
+                    if (alpha > 0) {
+                        data[i] = 255;     // Red
+                        data[i + 1] = 255; // Green
+                        data[i + 2] = 255; // Blue
+                    }
+                }
+
+                // 変更したデータをcanvasに反映
+                ctx.putImageData(imageData, 0, 0);
+
+                // 変更後の画像を表示
+                const resizedImageUrl = canvas.toDataURL();
+                document.getElementById('outputImage').src = resizedImageUrl;
+
+                // ダウンロードボタンを表示
+                const downloadButton = document.getElementById('downloadButton');
+                downloadButton.href = resizedImageUrl;  // ダウンロードリンクを画像のURLに設定
+                downloadButton.style.display = 'inline-block';  // ボタンを表示
+            } else {
+                alert('画像と横幅を指定してください');
+            }
+        }
+    </script>
+</body>
+</html>
